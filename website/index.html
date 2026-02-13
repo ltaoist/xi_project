@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曦0.01 - 支持中文关键字的面向对象编程语言编译器</title>
+    
+    <!-- 内联密码保护层样式 - 防止外部CSS加载失败 -->
+    <style>
+        /* 密码保护层样式 */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        }
+
+        .password-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .password-box {
+            background: white;
+            padding: 3rem 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .password-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .password-box h2 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .password-box p {
+            color: #7f8c8d;
+            margin-bottom: 1.5rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        #password-input {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            border: 2px solid #e1e4e8;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        #password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .password-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .password-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .password-btn:active {
+            transform: translateY(0);
+        }
+
+        .password-error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            min-height: 1.2rem;
+        }
+    </style>
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+</head>
+<body>
+    <!-- 密码保护层 -->
+    <div id="password-overlay" class="password-overlay">
+        <div class="password-box">
+            <div class="password-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>内容已加锁</h2>
+            <p>请输入访问密码</p>
+            <input type="password" id="password-input" placeholder="请输入密码" autocomplete="off">
+            <button id="password-submit" class="password-btn">确认</button>
+            <p id="password-error" class="password-error"></p>
+        </div>
+    </div>
+
+    <nav class="sidebar">
+        <div class="logo">
+            <h1>曦0.01</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#intro" class="nav-link active">概述</a></li>
+            <li><a href="#visibility" class="nav-link">构建性可见性</a></li>
+            <li class="has-subnav">
+                <a href="#syntax" class="nav-link">语法与示例</a>
+                <ul class="sub-nav expanded">
+                    <li><a href="#syntax-keywords" class="sub-nav-link">中文关键字</a></li>
+                    <li><a href="#syntax-class" class="sub-nav-link">类定义</a></li>
+                    <li><a href="#syntax-inherit" class="sub-nav-link">类继承与多重继承</a></li>
+                    <li><a href="#syntax-visibility" class="sub-nav-link">可见性分组</a></li>
+                    <li><a href="#syntax-types" class="sub-nav-link">数据类型</a></li>
+                    <li><a href="#syntax-methods" class="sub-nav-link">方法与重载</a></li>
+                    <li><a href="#syntax-control" class="sub-nav-link">控制流</a></li>
+                    <li><a href="#syntax-conversion" class="sub-nav-link">显式类型转换</a></li>
+                </ul>
+            </li>
+            <li><a href="#implementation" class="nav-link">工程原理</a></li>
+            <li><a href="#output" class="nav-link">编译产出</a></li>
+            <li><a href="#disclaimer" class="nav-link">免责声明</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <section id="intro" class="section">
+            <div class="section-header fade-in">
+                <h2>曦0.01</h2>
+                <div class="subtitle">支持中文关键字的面向对象编程语言编译器</div>
+            </div>
+
+            <div class="warning-box fade-in">
+                <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="warning-content">
+                    <h3>早期开发阶段警告</h3>
+                    <p><strong>曦语言目前处于早期实验阶段，尚不稳定。</strong>语法规则、编译器实现、类型系统等核心设计可能随时发生重大变更。距离最终可靠、可用的稳定版本还需要长时间的迭代开发和测试验证。</p>
+                    <p class="warning-note">当前版本仅供学习研究使用，不建议用于任何生产环境或实际项目开发。</p>
+                </div>
+            </div>
+            
+            <div class="intro-content">
+                <div class="intro-text">
+                    <p>"曦"意为清晨的阳光。我们希望这门语言能在编程语言的探索中，带来一些不一样的尝试。曦语言采用<strong>中文关键字</strong>编写，让代码与中文世界连接，语言设计上强调安全性与灵活性的平衡，并注意编译器实现。</p>
+                </p>
+                </div>
+
+                <div class="intro-highlights">
+                    <div class="highlight-card">
+                        <div class="highlight-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div class="highlight-content">
+                            <h4>精确类型系统</h4>
+                            <p>禁止隐式类型转换，所有类型转换均显式标注，确保代码安全可靠</p>
+                        </div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon"><i class="fas fa-sitemap"></i></div>
+                        <div class="highlight-content">
+                            <h4>构建性可见性</h4>
+                            <p>创新的可见性分组机制，在编译期构建精细的访问控制体系</p>
+                        </div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="highlight-content">
+                            <h4>完整编译流程</h4>
+                            <p>从词法分析到代码生成，实现了完整的编译器工具链</p>
+                        </div>
+                    </div>
+                    <div class="highlight-card">
+                        <div class="highlight-icon"><i class="fas fa-rocket"></i></div>
+                        <div class="highlight-content">
+                            <h4>孕育新的可能</h4>
+                            <p>探索编程语言设计的更多创新方向</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="visibility" class="section">
+            <div class="section-header fade-in">
+                <h2>构建性可见性</h2>
+                <div class="subtitle">编译期构建的精细访问控制机制</div>
+            </div>
+
+            <div class="concept-box fade-in">
+                <div class="concept-icon"><i class="fas fa-lightbulb"></i></div>
+                <div class="concept-content">
+                    <h3>看这里！</h3>
+                    <p>构建性可见性（Constructive Visibility）是曦语言的核心创新。不同于传统的public/private/protected三级访问控制，曦语言通过可见性分组（Visibility Group）机制，在编译期为每个类成员精确构建其可见性范围，实现更灵活、更精细的访问控制。</p>
+                </div>
+            </div>
+
+            <div class="visibility-demo">
+                <div class="demo-left">
+                    <h4><i class="fas fa-code"></i> 可见性分组语法</h4>
+                    <pre><code class="language-xi">想象 数学家;
+想象 建设者;
+
+想象 正方形
+(
+    "正方形类",
+    表达 形状
+){
+    跃进 建设者*, 数学家* :
+        // 仅建设者和数学家类或继承这些类的类可见
+        float 内部参数;
+    
+    跃进 建设者* :
+        // 仅建设者类或继承建设者类的类可见可见
+        void 初始化内部状态();
+    
+    跃进 * :
+        // 所有类可见（公开接口）
+        float 面积();
+    
+    跃进 () :
+        // 仅本类可见（私有成员）
+        float 长度;
+        float 宽度;
+}</code></pre>
+                </div>
+                <div class="demo-right">
+                    <h4><i class="fas fa-diagram-project"></i> 访问控制模型</h4>
+                    <div class="visibility-layers">
+                        <div class="layer layer-1">
+                            <i class="fas fa-globe"></i>
+                            <span>全局可见 (*)</span>
+                        </div>
+                        <div class="layer layer-2">
+                            <i class="fas fa-users"></i>
+                            <span>多类可见 (A*, B*)</span>
+                        </div>
+                        <div class="layer layer-3">
+                            <i class="fas fa-user"></i>
+                            <span>单类可见 (C*)</span>
+                        </div>
+                        <div class="layer layer-4">
+                            <i class="fas fa-lock"></i>
+                            <span>类内私有 (())</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="benefit-grid">
+                <div class="benefit-card">
+                    <i class="fas fa-microscope"></i>
+                    <h4>精细粒度</h4>
+                    <p>为不同调用者提供不同的接口视图</p>
+                </div>
+                <div class="benefit-card">
+                    <i class="fas fa-puzzle-piece"></i>
+                    <h4>灵活组合</h4>
+                    <p>支持多类联合可见性声明</p>
+                </div>
+                <div class="benefit-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h4>编译期检查</h4>
+                    <p>可见性违规在编译期即可发现</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="syntax" class="section">
+            <div class="section-header fade-in">
+                <h2>语法与示例</h2>
+                <div class="subtitle">中文关键字的面向对象语法体系与实际应用</div>
+            </div>
+
+            <!-- 中文关键字 -->
+            <div id="syntax-keywords" class="subsection">
+                <h3 class="subsection-title">中文关键字</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言使用<strong>中文关键字</strong>构建完整的语法体系，提升代码可读性，保持语义清晰。这不仅降低了学习门槛，也让代码更贴近自然语言表达。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>核心关键字</h4>
+                    <div class="keyword-grid">
+                        <div class="keyword-item">
+                            <span class="keyword-cn">想象</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">类定义</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">超类</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">可继承的基类</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">表达</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">继承声明</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">跃进</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">可见性分组</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">若然</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">条件判断</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">咳</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">循环语句</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">呛</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">迭代语句</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">返回</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">返回值</span>
+                        </div>
+                        <div class="keyword-item">
+                            <span class="keyword-cn">运算+/-/*</span>
+                            <span class="keyword-arrow">→</span>
+                            <span class="keyword-desc">运算符重载</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-card">
+                    <h4>中文关键字完整示例</h4>
+                    <pre><code class="language-xi">// 使用中文关键字编写的完整类定义
+想象 超类 形状
+(
+    "几何形状基类"
+){
+    跃进 * :
+        float 面积();
+}
+
+想象 圆形
+(
+    "圆形类，继承自形状",
+    表达 形状
+){
+    跃进 () :
+        float 半径;
+    
+    跃进 * :
+        圆形(float r) {
+            半径 = r;
+        }
+        
+        float 面积() {
+            float 结果 = 3.14159 * 半径 * 半径;
+            返回 结果;
+        }
+        
+        bool 是否有效() {
+            若然 (半径 > 0) {
+                返回 true;
+            }
+            返回 false;
+        }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 类定义 -->
+            <div id="syntax-class" class="subsection">
+                <h3 class="subsection-title">类定义</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言使用<code>想象</code>关键字定义类。类可以标记为<strong>超类</strong>（可被继承的基类），也支持前置声明。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">// 基本类定义
+想象 矩形 {
+    // 类成员
+}
+
+// 超类（可被继承的基类）
+想象 超类 基础形状 {
+    // 基类实现
+}
+
+// 前置声明（用于解决循环依赖）
+想象 圆形;</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：几何形状基类</h4>
+                    <pre><code class="language-xi">// 形状基类（超类）
+想象 超类 形状
+(
+    "所有几何形状的基类"
+){
+    跃进 * :
+        // 抽象方法（子类必须实现）
+        float 面积();
+        float 周长();
+        
+        // 通用方法
+        void 打印信息() {
+            // 输出形状信息
+        }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 类继承与多重继承 -->
+            <div id="syntax-inherit" class="subsection">
+                <h3 class="subsection-title">类继承与多重继承</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言支持<strong>多重继承</strong>，使用<code>表达</code>关键字指定父类。继承的类必须标记为<strong>超类</strong>。编译器在编译期检查继承合法性，避免继承链错误，确保类型系统的安全性。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">// 单继承
+想象 正方形
+(
+    "正方形类，继承自矩形",
+    表达 矩形
+){
+    // 类实现
+}
+
+// 多重继承
+想象 飞行汽车
+(
+    "飞行汽车，同时继承汽车和飞机",
+    表达 汽车, 飞机
+){
+    // 父类必须标记为超类
+    // 编译器会检查继承合法性
+}</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：几何形状类层次</h4>
+                    <pre><code class="language-xi">// 形状基类（虚拟超类）
+想象 超类 形状
+(
+    "所有几何形状的基类"
+){
+    跃进 * :
+        // 抽象方法（子类必须实现）
+        float 面积();
+        float 周长();
+        
+        // 通用方法
+        void 打印信息() {
+            // 输出形状信息
+        }
+}
+
+// 矩形类（继承自形状）
+想象 矩形
+(
+    "矩形类，继承自形状",
+    表达 形状
+){
+    跃进 () :
+        float 长度;
+        float 宽度;
+    
+    跃进 * :
+        矩形(float l, float w) {
+            长度 = l;
+            宽度 = w;
+        }
+        
+        float 面积() {
+            返回 长度 * 宽度;
+        }
+        
+        float 周长() {
+            返回 2 * (长度 + 宽度);
+        }
+}
+
+// 正方形类（继承自矩形）
+想象 正方形
+(
+    "正方形类，继承自矩形",
+    表达 矩形
+){
+    跃进 * :
+        正方形(float 边长) {
+            长度 = 边长;
+            宽度 = 边长;
+        }
+}</code></pre>
+                </div>
+
+                <div class="feature-highlight-box">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="highlight-content">
+                        <h4>继承安全性保证</h4>
+                        <ul>
+                            <li><strong>编译期检查</strong>：继承关系在编译期即可验证，避免运行时错误</li>
+                            <li><strong>显式标记</strong>：父类必须明确标记为超类，防止意外继承</li>
+                            <li><strong>类型安全</strong>：多重继承的类型转换由编译器自动处理并验证</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可见性分组 -->
+            <div id="syntax-visibility" class="subsection">
+                <h3 class="subsection-title">可见性分组</h3>
+                <div class="syntax-explanation">
+                    <p><strong>构建性可见性</strong>是曦语言的核心特性。使用<code>跃进</code>关键字定义可见性分组，支持全局可见（*）、多类可见、单类可见和类内私有（()）四种级别。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">想象 数学家;
+想象 建设者;
+
+想象 正方形 {
+    跃进 建设者*, 数学家* :
+        // 仅建设者和数学家类可见
+        float 内部参数;
+    
+    跃进 建设者* :
+        // 仅建设者类可见
+        void 初始化内部状态();
+    
+    跃进 * :
+        // 所有类可见（公开接口）
+        float 面积();
+    
+    跃进 () :
+        // 仅本类可见（私有成员）
+        float 长度;
+        float 宽度;
+}</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：银行账户系统</h4>
+                    <pre><code class="language-xi">想象 工程师;
+想象 审计员;
+
+想象 银行账户
+(
+    "银行账户类，演示复杂可见性控制"
+){
+    跃进 () :
+        // 私有数据
+        float 余额;
+        int 账号;
+        char(* 交易记录)[];
+    
+    跃进 审计员* :
+        // 仅审计员可见
+        float 查询余额() {
+            返回 余额;
+        }
+        
+        void 查看交易记录() {
+            // 审计功能实现
+        }
+    
+    跃进 工程师* :
+        // 仅工程师可见
+        void 重置系统() {
+            余额 = 0;
+        }
+        
+        void 修复数据() {
+            // 维护功能
+        }
+    
+    跃进 工程师*, 审计员* :
+        // 工程师和审计员共享
+        void 生成报告() {
+            // 生成系统报告
+        }
+    
+    跃进 * :
+        // 公开接口
+        void 存款(float 金额) {
+            余额 = 余额 + 金额;
+        }
+        
+        bool 取款(float 金额) {
+            若然 (余额 >= 金额) {
+                余额 = 余额 - 金额;
+                返回 true;
+            }
+            返回 false;
+        }
+        
+        float 查询公开余额() {
+            返回 余额;
+        }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 数据类型 -->
+            <div id="syntax-types" class="subsection">
+                <h3 class="subsection-title">数据类型</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言支持基本类型（int、float、bool、char）、指针类型和数组类型。所有类型转换必须显式声明，禁止隐式转换。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">// 基本类型
+int 整数;
+float 浮点数;
+bool 布尔值;
+char 字符;
+
+// 指针类型
+矩形* 指针;
+形状* 形状指针;
+
+// 数组类型
+int(* 一维数组)[];
+float(** 二维数组)[][];
+矩形(* 对象数组)[];</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：数据容器类</h4>
+                    <pre><code class="language-xi">想象 数据容器 {
+    跃进 () :
+        int(* 整数数组)[];
+        float(** 矩阵)[][];
+        int 元素数量;
+        int 容量;
+    
+    跃进 * :
+        数据容器(int 初始容量) {
+            容量 = 初始容量;
+            元素数量 = 0;
+            // 分配内存
+        }
+        
+        void 添加元素(int 值) {
+            若然 (元素数量 < 容量) {
+                整数数组[元素数量] = 值;
+                元素数量 = 元素数量 + 1;
+            }
+        }
+        
+        int 获取元素(int 索引) {
+            返回 整数数组[索引];
+        }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 方法与重载 -->
+            <div id="syntax-methods" class="subsection">
+                <h3 class="subsection-title">方法与重载</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言支持构造函数、普通方法和运算符重载。同一方法名可在不同可见性分组中定义不同实现，实现<strong>上下文相关重载</strong>。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">跃进 * :
+    // 构造函数
+    正方形(float 边长) {
+        长度 = 边长;
+        宽度 = 边长;
+    }
+    
+    // 普通方法
+    float 面积() {
+        返回 长度 * 宽度;
+    }
+    
+    // 运算符重载
+    正方形 运算+(正方形* *other) {
+        // 实现加法运算符
+    }</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：向量类与运算符重载</h4>
+                    <pre><code class="language-xi">想象 向量 {
+    跃进 () :
+        float x;
+        float y;
+    
+    跃进 * :
+        // 构造函数
+        向量(float x_, float y_) {
+            x = x_;
+            y = y_;
+        }
+        
+        // 运算符重载：加法
+        向量 运算+(向量* *other) {
+            向量 result(x + other->x, y + other->y);
+            返回 result;
+        }
+        
+        // 运算符重载：数乘
+        向量 运算*(float scalar) {
+            向量 result(x * scalar, y * scalar);
+            返回 result;
+        }
+        
+        // 点积运算
+        float 点积(向量* *other) {
+            返回 x * other->x + y * other->y;
+        }
+        
+        // 长度计算
+        float 长度() {
+            返回 (x * x + y * y);  // 简化版，实际应开方
+        }
+        
+        // 判断是否为零向量
+        bool 是否为零() {
+            若然 (x == 0 && y == 0) {
+                返回 true;
+            }
+            返回 false;
+        }
+}</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>上下文相关重载示例</h4>
+                    <pre><code class="language-xi">想象 建设者;
+想象 数学家;
+
+想象 计算器 {
+    跃进 建设者* :
+        // 建设者视角的计算方法
+        float 计算(float a, float b) {
+            返回 a + b;  // 简单加法
+        }
+    
+    跃进 数学家* :
+        // 数学家视角的计算方法
+        float 计算(float a, float b) {
+            返回 a * a + b * b;  // 平方和
+        }
+    
+    // 根据调用者类别，同名方法解析到不同实现
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 控制流 -->
+            <div id="syntax-control" class="subsection">
+                <h3 class="subsection-title">控制流</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言提供条件语句（<code>若然</code>）、循环语句（<code>咳</code>）和迭代语句（<code>呛</code>），支持范围迭代和集合遍历。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">// 条件语句
+若然 (x > 0) {
+    // if语句
+}
+
+// while循环
+咳 (i < 10) {
+    i = i + 1;
+}
+
+// for循环（范围迭代）
+呛 (int i : 0..100) {
+    // 遍历0到99
+}
+
+// for-each循环
+呛 (int item : array) {
+    // 遍历数组元素
+}</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：排序算法</h4>
+                    <pre><code class="language-xi">想象 排序器 {
+    跃进 * :
+        // 冒泡排序
+        void 冒泡排序(int(* 数组)[], int 长度) {
+            呛 (int i : 0..长度) {
+                呛 (int j : 0..(长度 - i - 1)) {
+                    若然 (数组[j] > 数组[j + 1]) {
+                        // 交换元素
+                        int 临时 = 数组[j];
+                        数组[j] = 数组[j + 1];
+                        数组[j + 1] = 临时;
+                    }
+                }
+            }
+        }
+        
+        // 查找最大值
+        int 查找最大值(int(* 数组)[], int 长度) {
+            int 最大值 = 数组[0];
+            呛 (int i : 1..长度) {
+                若然 (数组[i] > 最大值) {
+                    最大值 = 数组[i];
+                }
+            }
+            返回 最大值;
+        }
+        
+        // 统计正数数量
+        int 统计正数(int(* 数组)[], int 长度) {
+            int 计数 = 0;
+            呛 (int 元素 : 数组) {
+                若然 (元素 > 0) {
+                    计数 = 计数 + 1;
+                }
+            }
+            返回 计数;
+        }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 显式类型转换 -->
+            <div id="syntax-conversion" class="subsection">
+                <h3 class="subsection-title">显式类型转换</h3>
+                <div class="syntax-explanation">
+                    <p>曦语言实现<strong>显式类型系统</strong>，禁止隐式类型转换，所有类型转换必须显式声明，确保类型安全。编译器会自动为派生类到基类的转换插入必要代码，但基本类型转换需要手动声明，避免意外的数据丢失或精度损失。</p>
+                </div>
+                
+                <div class="example-card">
+                    <h4>基础语法</h4>
+                    <pre><code class="language-xi">// 基本类型显式转换
+float f = 3.14;
+int i = (int)f;
+
+// 派生类到基类的转换
+// 编译器自动插入转换代码
+形状* s = (形状*)正方形实例;
+
+// 指针转换
+矩形* rect = (矩形*)形状指针;</code></pre>
+                </div>
+
+                <div class="example-card">
+                    <h4>完整实例：类型安全的图形系统</h4>
+                    <pre><code class="language-xi">想象 超类 形状 {
+    跃进 * :
+        float 面积();
+}
+
+想象 矩形
+(
+    "矩形类",
+    表达 形状
+){
+    跃进 () :
+        float 长度;
+        float 宽度;
+    
+    跃进 * :
+        矩形(float l, float w) {
+            长度 = l;
+            宽度 = w;
+        }
+        
+        float 面积() {
+            返回 长度 * 宽度;
+        }
+}
+
+想象 图形管理器 {
+    跃进 () :
+        形状(** 形状列表)[];
+        int 形状数量;
+    
+    跃进 * :
+        void 添加矩形(矩形* *rect) {
+            // 派生类到基类转换，编译器自动处理
+            形状* 形状指针 = (形状*)rect;
+            形状列表[形状数量] = 形状指针;
+            形状数量 = 形状数量 + 1;
+        }
+        
+        float 计算总面积() {
+            float 总和 = 0.0;
+            呛 (int i : 0..形状数量) {
+                总和 = 总和 + 形状列表[i]->面积();
+            }
+            返回 总和;
+        }
+}</code></pre>
+                </div>
+
+                <div class="feature-highlight-box">
+                    <i class="fas fa-check-double"></i>
+                    <div class="highlight-content">
+                        <h4>类型安全保证</h4>
+                        <ul>
+                            <li><strong>零隐式转换</strong>：所有类型转换必须显式声明，避免意外的类型转换</li>
+                            <li><strong>编译期检查</strong>：类型不兼容在编译期即可发现，提前暴露错误</li>
+                            <li><strong>自动辅助转换</strong>：派生类到基类的转换由编译器自动插入，减轻开发负担</li>
+                            <li><strong>精度保护</strong>：基本类型转换必须手动声明，防止精度丢失</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="implementation" class="section">
+            <div class="section-header fade-in">
+                <h2>工程原理</h2>
+                <div class="subtitle">完整的编译器工具链</div>
+            </div>
+
+            <div class="pipeline">
+                <div class="pipeline-step">
+                    <div class="step-number">01</div>
+                    <div class="step-icon"><i class="fas fa-text-width"></i></div>
+                    <h3>词法分析</h3>
+                    <p>Tokenizer将源代码解析为token流，识别中文关键字、标识符、操作符等</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>正则表达式匹配</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">02</div>
+                    <div class="step-icon"><i class="fas fa-project-diagram"></i></div>
+                    <h3>语法分析</h3>
+                    <p>Parser根据文法规则构建抽象语法树（AST），表示程序的层次结构</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>递归下降解析</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">03</div>
+                    <div class="step-icon"><i class="fas fa-search"></i></div>
+                    <h3>语义分析</h3>
+                    <p>构建符号表，检查类继承关系、可见性规则、类型兼容性等语义约束</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>符号表 + 类型检查</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">04</div>
+                    <div class="step-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <h3>变量解析</h3>
+                    <p>解析变量引用，区分局部变量、成员变量和外部变量，处理隐式this</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>作用域分析</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">05</div>
+                    <div class="step-icon"><i class="fas fa-random"></i></div>
+                    <h3>重载解析</h3>
+                    <p>根据调用上下文和可见性规则，为每个方法调用选择正确的重载实现</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>上下文感知决策</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">06</div>
+                    <div class="step-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <h3>类型转换</h3>
+                    <p>检查类型兼容性，自动插入必要的类型转换代码，特别是派生类到基类的转换</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>类型推导 + 代码插入</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-arrow"><i class="fas fa-angle-double-down"></i></div>
+
+                <div class="pipeline-step">
+                    <div class="step-number">07</div>
+                    <div class="step-icon"><i class="fas fa-file-code"></i></div>
+                    <h3>代码生成</h3>
+                    <p>遍历AST生成C语言代码，包括struct定义、函数实现、前置声明等</p>
+                    <div class="step-tech">
+                        <i class="fas fa-code"></i>
+                        <span>AST遍历 + 代码生成</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="implementation-note">
+                <i class="fas fa-info-circle"></i>
+                <p>整个编译流程遵循经典编译工程原理，每个阶段都有明确的输入输出和错误检查机制，确保编译的可靠性和正确性。</p>
+            </div>
+        </section>
+
+        <section id="output" class="section">
+            <div class="section-header fade-in">
+                <h2>编译产出与Name Mangling</h2>
+                <div class="subtitle">从曦语言到标准C语言子集的转换</div>
+            </div>
+
+            <div class="syntax-explanation">
+                <p>曦语言源代码编译为标准C语言子集。编译器实现<strong>Name Mangling</strong>机制，将方法名编码包含类名和可见性信息，不同重载映射到不同的C函数名。同时，编译器自动分析依赖关系，生成必要的<strong>函数前置声明</strong>，解决C语言编译顺序依赖问题。</p>
+            </div>
+
+            <div class="output-comparison">
+                <div class="comparison-side">
+                    <h3><i class="fas fa-code"></i> 曦语言源代码</h3>
+                    <pre><code class="language-xi">想象 矩形 {
+    跃进 () :
+        float 长度;
+        float 宽度;
+    
+    跃进 * :
+        矩形(float l, float w) {
+            长度 = l;
+            宽度 = w;
+        }
+        
+        float 面积() {
+            返回 长度 * 宽度;
+        }
+}</code></pre>
+                </div>
+
+                <div class="comparison-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+
+                <div class="comparison-side">
+                    <h3><i class="fas fa-file-code"></i> 编译后的C代码</h3>
+                    <pre><code class="language-c">// 自动生成的结构体定义
+typedef struct Rectangle {
+    float length;
+    float width;
+} Rectangle;
+
+// 函数前置声明（自动生成）
+Rectangle* Rectangle__construct__public(float l, float w);
+float Rectangle__area__public(Rectangle* self);
+
+// Name Mangling后的构造函数
+Rectangle* Rectangle__construct__public(float l, float w) {
+    Rectangle* self = (Rectangle*)malloc(sizeof(Rectangle));
+    self->length = l;
+    self->width = w;
+    return self;
+}
+
+// Name Mangling后的方法
+float Rectangle__area__public(Rectangle* self) {
+    return self->length * self->width;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="mangling-rules">
+                <h3><i class="fas fa-signature"></i> Name Mangling规则</h3>
+                <div class="rule-card">
+                    <h4>编码格式</h4>
+                    <div class="format-box">
+                        <code>类名__方法名__可见性标识</code>
+                    </div>
+                </div>
+
+                <div class="rule-examples">
+                    <h4>映射示例</h4>
+                    <div class="mapping-grid">
+                        <div class="mapping-item">
+                            <div class="mapping-from">
+                                <span class="label">曦语言</span>
+                                <code>正方形::面积()</code>
+                            </div>
+                            <i class="fas fa-long-arrow-alt-right"></i>
+                            <div class="mapping-to">
+                                <span class="label">C函数</span>
+                                <code>Square__area__public(self)</code>
+                            </div>
+                        </div>
+
+                        <div class="mapping-item">
+                            <div class="mapping-from">
+                                <span class="label">曦语言</span>
+                                <code>正方形::初始化()@建设者*</code>
+                            </div>
+                            <i class="fas fa-long-arrow-alt-right"></i>
+                            <div class="mapping-to">
+                                <span class="label">C函数</span>
+                                <code>Square__init__v1(self)</code>
+                            </div>
+                        </div>
+
+                        <div class="mapping-item">
+                            <div class="mapping-from">
+                                <span class="label">曦语言</span>
+                                <code>正方形::计算()@数学家*</code>
+                            </div>
+                            <i class="fas fa-long-arrow-alt-right"></i>
+                            <div class="mapping-to">
+                                <span class="label">C函数</span>
+                                <code>Square__calc__v2(self)</code>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mapping-note">不同可见性的重载映射到不同函数名，编译器在调用时根据上下文选择正确的函数</p>
+                </div>
+            </div>
+
+            <div class="feature-highlight-box">
+                <i class="fas fa-tools"></i>
+                <div class="highlight-content">
+                    <h4>编译器自动化特性</h4>
+                    <ul>
+                        <li><strong>Name Mangling</strong>：自动为方法生成唯一的C函数名，支持重载和可见性</li>
+                        <li><strong>前置声明</strong>：自动分析依赖关系，生成必要的函数声明，解决顺序问题</li>
+                        <li><strong>类型转换代码</strong>：自动插入派生类到基类的转换代码</li>
+                        <li><strong>结构体生成</strong>：自动将类定义转换为C结构体，保持内存布局</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 免责声明 -->
+        <section id="disclaimer" class="section">
+            <div class="section-header fade-in">
+                <h2>免责声明</h2>
+                <div class="subtitle">Disclaimer</div>
+            </div>
+
+            <div class="syntax-explanation">
+                <p>这个作品是一个原创作品，开发者享有著作权。这个作品不保证包括、符合、实现了另外的作品中任何的概念和内容。这个作品可能包括图形渲染、物理模拟、音效系统、网络功能及人工智能等多个不同的模块，因计算资源、发行管理、内容策划、客观条件、文化接受或其他的差异，运行这些模块的实际效果可能是有差异的。</p>
+            </div>
+
+            <div class="syntax-explanation" style="opacity: 0.85; font-style: italic;">
+                <p>This work is an original creation, and the developer holds the copyright. It does not guarantee the inclusion, compliance, or implementation of any concepts or content from other works. This work may encompass various modules such as graphics rendering, physics simulation, sound systems, network functionalities, and artificial intelligence. Due to differences in computational resources, distribution management, content planning, objective conditions, cultural acceptance, or other factors, the actual performance of these modules may vary.</p>
+            </div>
+        </section>
+
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
